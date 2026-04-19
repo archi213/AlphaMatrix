@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AlphaMatrix — Login</title>
+  <meta name="description" content="Sign in or create an account to play AlphaMatrix — the premium sudoku experience.">
+
+  <!-- Fonts — loaded async so page doesn't block -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* ─────────────────────────────────────────────────────
+       RESET
+    ───────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: #06080f;
+      color: #f0f4ff;
+      overflow: hidden;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       ANIMATED GRADIENT BACKGROUND (pure CSS — no GSAP)
+    ───────────────────────────────────────────────────── */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 15% 10%, rgba(124,58,237,.35) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 55% at 85% 85%, rgba(6,182,212,.28) 0%,  transparent 65%),
+        radial-gradient(ellipse 45% 40% at 50% 50%, rgba(236,72,153,.14) 0%, transparent 60%),
+        #06080f;
+      animation: bgShimmer 10s ease-in-out infinite alternate;
+    }
+    @keyframes bgShimmer {
+      0%   { filter: brightness(1);   }
+      50%  { filter: brightness(1.08); }
+      100% { filter: brightness(1);   }
+    }
+
+    /* Orbs — pure CSS, no JS needed */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 {
+      width: 55vmax; height: 55vmax;
+      background: rgba(124,58,237,.25);
+      top: -20%; left: -15%;
+      animation: orbFloat1 14s ease-in-out infinite alternate;
+    }
+    .orb-2 {
+      width: 40vmax; height: 40vmax;
+      background: rgba(6,182,212,.22);
+      bottom: -15%; right: -10%;
+      animation: orbFloat2 10s ease-in-out infinite alternate;
+    }
+    @keyframes orbFloat1 { from{transform:translate(0,0)} to{transform:translate(3%,4%)} }
+    @keyframes orbFloat2 { from{transform:translate(0,0)} to{transform:translate(-4%,-3%)} }
+
+    /* Particle canvas */
+    #bg-canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .55;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       PAGE CENTRE
+    ───────────────────────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100vh; height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       LOGO  — always visible; CSS animates it in
+    ───────────────────────────────────────────────────── */
+    .logo-bar {
+      position: absolute;
+      top: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideDown .6s .1s both ease-out;
+    }
+    @keyframes slideDown {
+      from { opacity:0; transform:translateX(-50%) translateY(-18px); }
+      to   { opacity:1; transform:translateX(-50%) translateY(0); }
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg,#7c3aed,#06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 22px rgba(124,58,237,.65);
+      flex-shrink: 0;
+    }
+    .logo-icon span {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem; font-weight: 900;
+      color: #fff;
+    }
+    .logo-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.2rem; font-weight: 800;
+      letter-spacing: -.3px;
+    }
+    .logo-name em {
+      font-style: normal;
+      background: linear-gradient(135deg,#a78bfa,#06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       GLASS CARD  — always visible; CSS animates it in
+    ───────────────────────────────────────────────────── */
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(12, 18, 38, 0.78);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      padding: 38px 34px 34px;
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      box-shadow:
+        0 0 0 1px rgba(124,58,237,.10),
+        0 20px 70px rgba(0,0,0,.65),
+        inset 0 1px 0 rgba(255,255,255,.06);
+      position: relative;
+      overflow: hidden;
+      /* CSS fallback entrance — always runs */
+      animation: cardIn .65s .25s both cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(32px) scale(.95); }
+      to   { opacity:1; transform:translateY(0)   scale(1); }
+    }
+
+    /* Top accent shimmer */
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 5%; right: 5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,.9) 35%, rgba(6,182,212,.9) 65%, transparent);
+    }
+
+    /* ── Badge ── */
+    .card-badge {
+      display: inline-flex;
+      align-items: center; gap: 6px;
+      background: rgba(124,58,237,.13);
+      border: 1px solid rgba(124,58,237,.3);
+      border-radius: 100px;
+      padding: 4px 13px;
+      font-size: .7rem; font-weight: 700;
+      color: #a78bfa;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Heading ── */
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.85rem; font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #f0f4ff 0%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .card-sub {
+      font-size: .82rem;
+      color: rgba(176,185,220,.65);
+      margin-bottom: 24px;
+    }
+
+    /* ── Tab Switcher ── */
+    .tab-wrap {
+      display: flex;
+      background: rgba(0,0,0,.3);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 11px;
+      padding: 4px; gap: 4px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .tab-slide {
+      position: absolute;
+      top: 4px; bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      border-radius: 8px;
+      background: linear-gradient(135deg,#7c3aed,#06b6d4);
+      box-shadow: 0 0 14px rgba(124,58,237,.5);
+      transition: left .3s cubic-bezier(.34,1.56,.64,1),
+                  width .3s ease;
+      z-index: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px 0;
+      background: transparent; border: none;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: .88rem; font-weight: 600;
+      color: rgba(176,185,220,.55);
+      cursor: pointer;
+      position: relative; z-index: 1;
+      transition: color .2s;
+    }
+    .tab-btn.active { color: #fff; }
+
+    /* ── Field ── */
+    .field { margin-bottom: 16px; }
+    .field-label {
+      display: block;
+      font-size: .72rem; font-weight: 600;
+      color: rgba(176,185,220,.75);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 7px;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute;
+      left: 13px; top: 50%; transform: translateY(-50%);
+      font-size: .85rem;
+      color: rgba(124,58,237,.7);
+      pointer-events: none;
+      transition: color .2s;
+      z-index: 1;
+    }
+    .input-wrap:focus-within .input-icon { color: #a78bfa; }
+    .field-input {
+      width: 100%;
+      padding: 12px 14px 12px 38px;
+      background: rgba(0,0,0,.38);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 11px;
+      color: #f0f4ff;
+      font-family: 'Inter', sans-serif;
+      font-size: .93rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .field-input::placeholder { color: rgba(176,185,220,.3); }
+    .field-input:focus {
+      border-color: rgba(124,58,237,.7);
+      background: rgba(124,58,237,.07);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+    }
+    .field-input.shake {
+      animation: fieldShake .35s ease;
+    }
+    @keyframes fieldShake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-5px)}
+      40%{transform:translateX(5px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+    }
+
+    /* Password toggle */
+    .pw-eye {
+      position: absolute;
+      right: 13px; top: 50%; transform: translateY(-50%);
+      background: none; border: none;
+      color: rgba(176,185,220,.35);
+      cursor: pointer; font-size: .85rem;
+      transition: color .2s; padding: 3px;
+      z-index: 1;
+    }
+    .pw-eye:hover { color: #a78bfa; }
+
+    /* Field error */
+    .field-err {
+      font-size: .72rem; color: #f87171;
+      margin-top: 5px;
+      display: none; align-items: center; gap: 5px;
+    }
+    .field-err.show { display: flex; }
+
+    /* Signup-only (username) — hidden by default */
+    .su-only {
+      max-height: 0; overflow: hidden;
+      opacity: 0;
+      transition: max-height .35s ease, opacity .3s ease, margin-bottom .3s ease;
+      margin-bottom: 0;
+    }
+    .su-only.open {
+      max-height: 120px; opacity: 1;
+      margin-bottom: 16px;
+    }
+
+    /* Forgot */
+    .forgot {
+      display: block;
+      text-align: right;
+      font-size: .75rem; color: rgba(124,58,237,.9);
+      text-decoration: none;
+      margin-top: -8px; margin-bottom: 22px;
+      transition: color .2s;
+    }
+    .forgot:hover { color: #a78bfa; }
+
+    /* ── Submit Button ── */
+    .submit-btn {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 11px;
+      background: linear-gradient(135deg,#7c3aed,#06b6d4);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: .97rem; font-weight: 700;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 22px rgba(124,58,237,.42);
+      transition: transform .15s, box-shadow .2s;
+    }
+    .submit-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg,rgba(255,255,255,.14),transparent);
+      pointer-events: none;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(124,58,237,.55);
+    }
+    .submit-btn:active { transform: scale(.97); }
+    .submit-btn:disabled { opacity:.7; cursor:not-allowed; transform:none; }
+
+    /* Spinner */
+    .spin-ring {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spin-ring { display: none; }
+    .loading .spin-ring { display: inline-block; }
+    .loading .btn-label { display: none; }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .72rem; color: rgba(176,185,220,.3);
+      margin-bottom: 16px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: rgba(255,255,255,.07);
+    }
+
+    /* ── Social ── */
+    .social-row { display: flex; gap: 9px; margin-bottom: 20px; }
+    .social-btn {
+      flex: 1; padding: 10px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      color: rgba(176,185,220,.65);
+      font-family: 'Inter', sans-serif;
+      font-size: .82rem; font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: all .2s;
+    }
+    .social-btn:hover {
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.15);
+      color: #f0f4ff;
+      transform: translateY(-1px);
+    }
+    .social-btn i { font-size: .95rem; }
+
+    /* ── Note ── */
+    .bottom-note {
+      text-align: center;
+      font-size: .76rem; color: rgba(176,185,220,.38);
+    }
+    .bottom-note a {
+      color: #a78bfa; text-decoration: none; font-weight: 600;
+    }
+    .bottom-note a:hover { color: #c4b5fd; }
+
+    /* ─────────────────────────────────────────────────────
+       TOAST
+    ───────────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(70px);
+      background: rgba(12,18,38,.96);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 11px;
+      padding: 12px 18px;
+      display: flex; align-items: center; gap: 9px;
+      font-size: .83rem; font-weight: 500;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 8px 28px rgba(0,0,0,.5);
+      z-index: 9998;
+      opacity: 0; pointer-events: none;
+      white-space: nowrap;
+      transition: opacity .3s, transform .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { border-left: 3px solid #10b981; }
+    .toast.success .toast-icon { color: #10b981; }
+    .toast.error   { border-left: 3px solid #f87171; }
+    .toast.error   .toast-icon { color: #f87171; }
+
+    /* ─────────────────────────────────────────────────────
+       EXIT OVERLAY
+    ───────────────────────────────────────────────────── */
+    #exit-veil {
+      position: fixed; inset: 0;
+      background: #06080f;
+      z-index: 9999;
+      opacity: 0; pointer-events: none;
+      transition: opacity .45s ease;
+    }
+    #exit-veil.active { opacity: 1; pointer-events: all; }
+
+    /* ─────────────────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────────────────── */
+    @media (max-width: 440px) {
+      .auth-card { padding: 32px 20px 28px; border-radius: 18px; }
+      .card-title { font-size: 1.6rem; }
+    }
+    @media (max-height: 680px) {
+      .auth-card { padding: 26px 28px 24px; }
+      .card-sub  { margin-bottom: 16px; }
+      .field     { margin-bottom: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── BACKGROUND ──────────────────────────────────────── -->
+<div class="bg-layer" aria-hidden="true"></div>
+<div class="orb orb-1" aria-hidden="true"></div>
+<div class="orb orb-2" aria-hidden="true"></div>
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+<!-- ── PAGE ───────────────────────────────────────────── -->
+<div class="page">
+
+  <!-- Logo -->
+  <div class="logo-bar" aria-label="AlphaMatrix logo">
+    <div class="logo-icon" aria-hidden="true"><span>α</span></div>
+    <span class="logo-name">Alpha<em>Matrix</em></span>
+  </div>
+
+  <!-- Card -->
+  <div class="auth-card" id="auth-card" role="main">
+
+    <div class="card-badge">
+      <i class="fas fa-gamepad" aria-hidden="true"></i> Premium Sudoku
+    </div>
+    <h1 class="card-title" id="card-title">Welcome Back</h1>
+    <p  class="card-sub"   id="card-sub">Sign in to continue your journey</p>
+
+    <!-- Tabs -->
+    <div class="tab-wrap" role="tablist">
+      <div class="tab-slide" id="tab-slide" aria-hidden="true"></div>
+      <button class="tab-btn active" id="tab-login"  role="tab" aria-selected="true">Login</button>
+      <button class="tab-btn"        id="tab-signup" role="tab" aria-selected="false">Sign Up</button>
+    </div>
+
+    <form id="auth-form" novalidate>
+
+      <!-- Username (signup only) -->
+      <div class="su-only" id="su-field">
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label" for="in-username">Username</label>
+          <div class="input-wrap">
+            <i class="fas fa-user input-icon" aria-hidden="true"></i>
+            <input type="text" id="in-username" class="field-input"
+              placeholder="Pick a username" autocomplete="username" maxlength="30">
+          </div>
+          <div class="field-err" id="err-username">
+            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+            <span id="err-username-txt">At least 3 characters</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="field">
+        <label class="field-label" for="in-email">Email</label>
+        <div class="input-wrap">
+          <i class="fas fa-envelope input-icon" aria-hidden="true"></i>
+          <input type="email" id="in-email" class="field-input"
+            placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="field-err" id="err-email">
+          <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+          <span>Enter a valid email address</span>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="field">
+        <label class="field-label" for="in-password">Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+          <input type="password" id="in-password" class="field-input"
+            placeholder="••••••••" autocomplete="current-password" required minlength="6">
+          <button type="button" class="pw-eye" id="pw-eye" aria-label="Show/hide password">
+            <i class="fas fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="field-err" id="err-password">
+          <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+          <span>Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <!-- Forgot -->
+      <a href="#" class="forgot" id="forgot-link">Forgot password?</a>
+
+      <!-- Submit -->
+      <button type="submit" class="submit-btn" id="submit-btn" aria-label="Submit login or signup">
+        <span class="spin-ring" aria-hidden="true"></span>
+        <span class="btn-label" id="btn-label">Enter the Matrix</span>
+      </button>
+
+      <!-- Divider -->
+      <div class="divider" aria-hidden="true">or continue with</div>
+
+      <!-- Social -->
+      <div class="social-row">
+        <button type="button" class="social-btn" id="btn-google">
+          <i class="fab fa-google" aria-hidden="true"></i> Google
+        </button>
+        <button type="button" class="social-btn" id="btn-github">
+          <i class="fab fa-github" aria-hidden="true"></i> GitHub
+        </button>
+      </div>
+
+      <!-- Note -->
+      <p class="bottom-note" id="bottom-note">
+        No account? <a href="#" id="switch-link">Sign up free →</a>
+      </p>
+
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <i class="fas fa-circle-check toast-icon" id="toast-icon" aria-hidden="true"></i>
+  <span id="toast-msg">Welcome!</span>
+</div>
+
+<!-- Exit veil -->
+<div id="exit-veil" aria-hidden="true"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   PARTICLES  (self-contained canvas — no CDN)
+════════════════════════════════════════════════════════ */
+(function () {
+  var c   = document.getElementById('bg-canvas');
+  var ctx = c.getContext('2d');
+  var pts = [];
+
+  function resize() { c.width = window.innerWidth; c.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (var i = 0; i < 90; i++) {
+    pts.push({
+      x:  Math.random() * c.width,
+      y:  Math.random() * c.height,
+      r:  Math.random() * 1.3 + .3,
+      vx: (Math.random() - .5) * .22,
+      vy: (Math.random() - .5) * .22,
+      a:  Math.random() * .45 + .1,
+      h:  Math.random() > .5 ? 265 : 190
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    pts.forEach(function(p) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -5)         p.x = c.width  + 5;
+      if (p.x > c.width+5)  p.x = -5;
+      if (p.y < -5)         p.y = c.height + 5;
+      if (p.y > c.height+5) p.y = -5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, 6.28);
+      ctx.fillStyle = 'hsla('+p.h+',80%,70%,'+p.a+')';
+      ctx.fill();
+    });
+    for (var i = 0; i < pts.length; i++) {
+      for (var j = i+1; j < pts.length; j++) {
+        var dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+        var d  = Math.sqrt(dx*dx + dy*dy);
+        if (d < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'hsla(260,70%,65%,' + ((1 - d/100) * .09) + ')';
+          ctx.lineWidth = .5;
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+
+/* ════════════════════════════════════════════════════════
+   APP LOGIC
+════════════════════════════════════════════════════════ */
+(function () {
+
+  /* ── If already logged in jump straight to game ─── */
+  if (localStorage.getItem('amUser')) {
+    goToGame();
+    return;
+  }
+
+  /* ── State ──────────────────────────────────────── */
+  var isSignup = false;
+
+  /* ── DOM refs ───────────────────────────────────── */
+  var tabLogin   = document.getElementById('tab-login');
+  var tabSignup  = document.getElementById('tab-signup');
+  var tabSlide   = document.getElementById('tab-slide');
+  var cardTitle  = document.getElementById('card-title');
+  var cardSub    = document.getElementById('card-sub');
+  var suField    = document.getElementById('su-field');
+  var inUser     = document.getElementById('in-username');
+  var inEmail    = document.getElementById('in-email');
+  var inPass     = document.getElementById('in-password');
+  var forgotLink = document.getElementById('forgot-link');
+  var submitBtn  = document.getElementById('submit-btn');
+  var btnLabel   = document.getElementById('btn-label');
+  var switchLink = document.getElementById('switch-link');
+  var bottomNote = document.getElementById('bottom-note');
+  var pwEyeBtn   = document.getElementById('pw-eye');
+  var form       = document.getElementById('auth-form');
+
+  /* ── Tab switching ─────────────────────────────── */
+  function activateLogin() {
+    isSignup = false;
+    tabLogin.classList.add('active');   tabLogin.setAttribute('aria-selected','true');
+    tabSignup.classList.remove('active'); tabSignup.setAttribute('aria-selected','false');
+    tabSlide.style.left = '4px';
+
+    animateText(cardTitle, 'Welcome Back');
+    animateText(cardSub, 'Sign in to continue your journey');
+    btnLabel.textContent = 'Enter the Matrix';
+
+    suField.classList.remove('open');
+    forgotLink.style.display = 'block';
+    bottomNote.innerHTML = 'No account? <a href="#" id="switch-link">Sign up free →</a>';
+    document.getElementById('switch-link').addEventListener('click', function(e){ e.preventDefault(); activateSignup(); });
+    clearErrors();
+  }
+
+  function activateSignup() {
+    isSignup = true;
+    tabSignup.classList.add('active');  tabSignup.setAttribute('aria-selected','true');
+    tabLogin.classList.remove('active'); tabLogin.setAttribute('aria-selected','false');
+    tabSlide.style.left = 'calc(50%)';
+
+    animateText(cardTitle, 'Create Account');
+    animateText(cardSub, 'Join the Matrix — it\'s free!');
+    btnLabel.textContent = 'Create Account';
+
+    suField.classList.add('open');
+    forgotLink.style.display = 'none';
+    bottomNote.innerHTML = 'Have an account? <a href="#" id="switch-link">Log in →</a>';
+    document.getElementById('switch-link').addEventListener('click', function(e){ e.preventDefault(); activateLogin(); });
+    clearErrors();
+  }
+
+  /* Quick CSS fade text swap */
+  function animateText(el, newText) {
+    el.style.transition = 'opacity .15s';
+    el.style.opacity = '0';
+    setTimeout(function() {
+      el.textContent = newText;
+      el.style.opacity = '1';
+    }, 160);
+  }
+
+  tabLogin.addEventListener('click',  function(){ if (isSignup)  activateLogin();  });
+  tabSignup.addEventListener('click', function(){ if (!isSignup) activateSignup(); });
+  switchLink.addEventListener('click', function(e){ e.preventDefault(); activateSignup(); });
+
+  /* ── Password eye ──────────────────────────────── */
+  var pwVisible = false;
+  pwEyeBtn.addEventListener('click', function() {
+    pwVisible = !pwVisible;
+    inPass.type = pwVisible ? 'text' : 'password';
+    pwEyeBtn.querySelector('i').className = pwVisible ? 'fas fa-eye-slash' : 'fas fa-eye';
+  });
+
+  /* ── Validation ─────────────────────────────────── */
+  function showError(fieldId, errId) {
+    var input = document.getElementById(fieldId);
+    var errEl = document.getElementById(errId);
+    if (errEl) errEl.classList.add('show');
+    if (input) { input.classList.add('shake'); setTimeout(function(){ input.classList.remove('shake'); }, 400); }
+  }
+  function clearErrors() {
+    document.querySelectorAll('.field-err').forEach(function(e){ e.classList.remove('show'); });
+  }
+  [inEmail, inPass, inUser].forEach(function(el) {
+    if (!el) return;
+    el.addEventListener('input', function() {
+      var row = el.closest('.field') || el.closest('.su-only');
+      if (row) row.querySelectorAll('.field-err').forEach(function(e){ e.classList.remove('show'); });
+    });
+  });
+
+  function validate() {
+    var ok = true;
+    var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inEmail.value.trim());
+    if (!emailOk)          { showError('in-email',    'err-email');    ok = false; }
+    if (inPass.value.length < 6) { showError('in-password', 'err-password'); ok = false; }
+    if (isSignup && inUser.value.trim().length < 3) { showError('in-username', 'err-username'); ok = false; }
+    return ok;
+  }
+
+  /* ── Submit ─────────────────────────────────────── */
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    clearErrors();
+    if (!validate()) return;
+
+    submitBtn.classList.add('loading');
+    submitBtn.disabled = true;
+
+    /* Simulate async auth — replace with real API */
+    setTimeout(function() {
+      var email = inEmail.value.trim();
+      var uname = isSignup ? inUser.value.trim() : email.split('@')[0];
+      localStorage.setItem('amUser', JSON.stringify({ email: email, username: uname }));
+
+      submitBtn.classList.remove('loading');
+      showToast('Welcome, ' + uname + '! 🎮', 'success');
+      setTimeout(goToGame, 900);
+    }, 1300);
+  });
+
+  /* ── Social (demo) ──────────────────────────────── */
+  document.getElementById('btn-google').addEventListener('click', function(){ showToast('Google login coming soon!', 'error'); });
+  document.getElementById('btn-github').addEventListener('click', function(){ showToast('GitHub login coming soon!', 'error'); });
+
+  /* ── Forgot ─────────────────────────────────────── */
+  document.getElementById('forgot-link').addEventListener('click', function(e){
+    e.preventDefault();
+    showToast('Reset link sent to your email.', 'success');
+  });
+
+  /* ── Button hover glow (pure JS, no GSAP needed) ── */
+  submitBtn.addEventListener('mouseenter', function(){ this.style.boxShadow = '0 8px 32px rgba(124,58,237,.58)'; });
+  submitBtn.addEventListener('mouseleave', function(){ this.style.boxShadow = '0 4px 22px rgba(124,58,237,.42)'; });
+
+  /* ── Toast ──────────────────────────────────────── */
+  var toastTimer;
+  function showToast(msg, type) {
+    var toastEl = document.getElementById('toast');
+    var msgEl   = document.getElementById('toast-msg');
+    var iconEl  = document.getElementById('toast-icon');
+    clearTimeout(toastTimer);
+
+    msgEl.textContent = msg;
+    toastEl.className = 'toast ' + type;
+    iconEl.className  = (type === 'success' ? 'fas fa-circle-check' : 'fas fa-circle-exclamation') + ' toast-icon';
+
+    /* Force reflow then show */
+    toastEl.offsetHeight;
+    toastEl.classList.add('visible');
+
+    toastTimer = setTimeout(function() { toastEl.classList.remove('visible'); }, 2800);
+  }
+
+  /* ── Page transition → world map ───────────────────── */
+  function goToGame() {
+    var veil = document.getElementById('exit-veil');
+    veil.classList.add('active');
+    setTimeout(function() { window.location.href = 'index.html'; }, 480);
+  }
+
+})();
+</script>
+</body>
+</html>

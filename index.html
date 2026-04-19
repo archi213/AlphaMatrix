@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AlphaMatrix — Classic Sudoku</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-wrapper">
+
+    <!-- HEADER / TOP NAV -->
+    <nav class="top-nav">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button id="btn-home" class="icon-btn" title="Go to Home"><i class="fas fa-home"></i></button>
+            <button id="btn-back-map" class="icon-btn hidden" title="Back to Levels"><i class="fas fa-arrow-left"></i></button>
+        </div>
+        <div class="logo-group">
+            <div class="logo-icon">α</div>
+            <div style="display:flex; flex-direction:column;">
+                <h1 class="logo-text">Alpha<span class="logo-accent">Matrix</span></h1>
+                <div id="xp-bar-nav" class="xp-bar-mini">
+                    <div id="xp-progress-nav" class="xp-fill"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="rank-badge-nav" class="rank-chip">
+            <span id="rank-icon-nav">🥉</span>
+            <span id="rank-name-nav">Bronze</span>
+        </div>
+        
+        <div id="level-badge" class="timer-wrap hidden" style="background:var(--grad); color:#fff; border-color:transparent;">
+            <i class="fas fa-route"></i>
+            <span id="level-display" style="font-weight:700; font-family:'Outfit'">Lvl 1</span>
+        </div>
+
+        <div id="timer-wrap" class="timer-wrap hidden">
+            <i class="fas fa-clock timer-icon"></i>
+            <span id="timer-display" class="timer-text">00:00</span>
+            <button id="pause-btn" class="icon-btn"><i class="fas fa-pause"></i></button>
+        </div>
+        
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button id="btn-open-stats-nav" class="icon-btn" title="Statistics"><i class="fas fa-chart-bar"></i></button>
+            <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
+        </div>
+    </nav>
+
+    <!-- LEVEL SELECTION HUB -->
+    <div id="level-selection-view" class="setup-screen">
+        
+        <!-- RESUME GAME BANNER -->
+        <div id="resume-banner" class="resume-banner hidden">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="resume-icon"><i class="fas fa-play"></i></div>
+                <div>
+                    <div style="font-weight:700; font-size:0.9rem;">Continue Last Game?</div>
+                    <div id="resume-info" style="font-size:0.7rem; opacity:0.7;">Classic • Medium • 04:20</div>
+                </div>
+            </div>
+            <button id="btn-resume-game" class="resume-btn-action">Resume</button>
+        </div>
+
+        <!-- DAILY CHALLENGE BANNER -->
+        <div id="daily-challenge-banner" class="resume-banner" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 8px 20px rgba(245,158,11,0.3); margin-bottom: 15px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="resume-icon" style="background: rgba(255,255,255,0.2);"><i class="fas fa-calendar-day"></i></div>
+                <div>
+                    <div style="font-weight:700; font-size:0.9rem;">Daily Challenge</div>
+                    <div id="daily-status" style="font-size:0.7rem; opacity:0.9;">Available Now • <span id="daily-streak-val">0</span> Day Streak</div>
+                </div>
+            </div>
+            <button id="btn-play-daily" class="resume-btn-action" style="color: #d97706;">Play</button>
+        </div>
+
+        <div class="setup-section">
+            <h3 class="setup-label">1. Choose Mode</h3>
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="classic">Classic</button>
+                <button class="mode-tab" data-mode="cross">Cross</button>
+                <button class="mode-tab" data-mode="killer">Killer</button>
+                <button class="mode-tab" data-mode="math">Math</button>
+                <button class="mode-tab" data-mode="square">Square</button>
+                <button class="mode-tab" data-mode="alphabet">Alphabet</button>
+            </div>
+        </div>
+
+        <div class="setup-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <h3 class="setup-label" style="margin:0;">2. Choose Difficulty</h3>
+                <div id="weekly-event-tag" class="event-tag">
+                    <i class="fas fa-calendar-star"></i> <span>2x XP Event</span>
+                </div>
+            </div>
+            <div class="difficulty-group">
+                <button class="diff-pill active" data-diff="easy">Easy</button>
+                <button class="diff-pill" data-diff="medium">Medium</button>
+                <button class="diff-pill" data-diff="hard">Hard</button>
+                <button class="diff-pill" data-diff="extreme">Extreme</button>
+            </div>
+        </div>
+
+        <div class="setup-section" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 class="setup-label">3. Choose Level</h3>
+                <div id="progression-stats" style="font-size:0.8rem; color:var(--txt-dim); font-weight:600;">0% Complete</div>
+            </div>
+            <div class="level-grid-container">
+                <div id="level-grid" class="level-grid clean-grid">
+                    <!-- Tiles dynamically generated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="setup-action" style="display:flex; flex-direction:column; gap:10px;">
+            <button id="btn-start-game" class="primary-btn setup-start-btn">Start Game</button>
+            <div style="display:flex; gap:10px;">
+                <button id="btn-open-stats" class="ctrl-btn" style="flex:1; height:45px; border-radius:12px; border:1px solid var(--border); background:var(--glass);">
+                    <i class="fas fa-chart-bar"></i> Stats
+                </button>
+                <button id="btn-open-settings-hub" class="ctrl-btn" style="flex:1; height:45px; border-radius:12px; border:1px solid var(--border); background:var(--glass);">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GAME VIEW (Hidden initially) -->
+    <div id="game-view" class="hidden">
+
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+        <div class="status-chip mistakes-chip">
+            <span class="chip-label"><i class="fas fa-times-circle"></i> Mistakes</span>
+            <span id="mistakes-display" class="chip-value">0/3</span>
+        </div>
+        <div class="status-chip hints-chip">
+            <span class="chip-label"><i class="fas fa-lightbulb"></i> Hints</span>
+            <span id="hints-display" class="chip-value">3</span>
+        </div>
+    </div>
+
+    <!-- SUDOKU BOARD -->
+    <div class="board-shell">
+        <div class="board-glass">
+            <div id="sudoku-board" class="sudoku-board"></div>
+            <!-- Pause Overlay -->
+            <div id="pause-overlay" class="board-overlay hidden">
+                <div class="overlay-inner">
+                    <div class="pause-ring"><i class="fas fa-pause"></i></div>
+                    <p class="overlay-title">Paused</p>
+                    <button id="resume-btn" class="primary-btn"><i class="fas fa-play"></i> Resume</button>
+                </div>
+            </div>
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="board-overlay hidden">
+                <div class="loader-ring"></div>
+                <p class="loading-text">Generating<span class="dots">...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM UI: CONTROLS & NUMPAD -->
+    <div class="bottom-ui-panel">
+        <div class="controls-row">
+            <button class="ctrl-btn" id="btn-undo">
+                <div class="ctrl-icon-wrap"><i class="fas fa-rotate-left"></i></div>
+                <span class="ctrl-label">Undo</span>
+            </button>
+            <button class="ctrl-btn" id="btn-erase">
+                <div class="ctrl-icon-wrap"><i class="fas fa-eraser"></i></div>
+                <span class="ctrl-label">Erase</span>
+            </button>
+            <button class="ctrl-btn" id="btn-notes">
+                <div class="ctrl-icon-wrap">
+                    <i class="fas fa-pen"></i>
+                    <span id="notes-badge" class="mode-badge off">OFF</span>
+                </div>
+                <span class="ctrl-label">Notes</span>
+            </button>
+            <button class="ctrl-btn" id="btn-hint">
+                <div class="ctrl-icon-wrap"><i class="fas fa-lightbulb"></i></div>
+                <span class="ctrl-label">Hint</span>
+            </button>
+        </div>
+
+        <div class="numpad-wrap" id="numpad-wrap">
+            <!-- Render 1 to 9 -->
+            <button class="num-btn" data-num="1">1</button>
+            <button class="num-btn" data-num="2">2</button>
+            <button class="num-btn" data-num="3">3</button>
+            <button class="num-btn" data-num="4">4</button>
+            <button class="num-btn" data-num="5">5</button>
+            <button class="num-btn" data-num="6">6</button>
+            <button class="num-btn" data-num="7">7</button>
+            <button class="num-btn" data-num="8">8</button>
+            <button class="num-btn" data-num="9">9</button>
+        </div>
+    </div>
+
+    </div> <!-- End game-view -->
+
+</div>
+
+<!-- VICTORY / GAME OVER MODALS -->
+<div id="victory-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-orb" style="background:#10b981"><i class="fas fa-trophy"></i></div>
+        <h2 class="modal-title">You Win!</h2>
+        <div id="vic-stars" style="display:flex; justify-content:center; gap:5px; margin-bottom:10px; font-size:1.5rem;">
+            <i class="fas fa-star" style="color: #fbbf24;"></i>
+            <i class="fas fa-star" style="color: #fbbf24;"></i>
+            <i class="fas fa-star" style="color: #fbbf24;"></i>
+        </div>
+        <p class="modal-sub" id="vic-sub">Puzzle solved successfully.</p>
+
+        <!-- ACHIEVEMENT UNLOCKED (HIDDEN BY DEFAULT) -->
+        <div id="vic-achievement-unlocked" class="hidden" style="background: rgba(124,58,237,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 10px; margin-bottom: 20px; animation: glow 2s infinite alternate;">
+            <div style="font-size: 0.65rem; font-weight: 800; color: var(--accent-2); text-transform: uppercase;">New Achievement!</div>
+            <div style="display:flex; align-items:center; gap:10px; justify-content:center; margin-top:5px;">
+                <span id="vic-achievement-icon" style="font-size:1.5rem;">🏆</span>
+                <span id="vic-achievement-name" style="font-weight:700;">First Victory</span>
+            </div>
+        </div>
+
+        <!-- NEW PROGRESSION STATS -->
+        <div class="victory-progression" style="background:var(--glass); border-radius:15px; padding:15px; margin-bottom:20px; border:1px solid var(--border); text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--txt-dim);">Rank Progress</span>
+                <span id="vic-xp-gain" style="font-size:0.8rem; font-weight:800; color:var(--accent-2);">+100 XP</span>
+            </div>
+            <div class="xp-bar-large" style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+                <div id="vic-xp-progress" class="xp-fill" style="width:0%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; font-weight:700;">
+                <span id="vic-rank-current">Bronze</span>
+                <div id="vic-streak-badge" style="color:var(--txt-hint);">
+                    <i class="fas fa-fire"></i> <span id="vic-streak-count">1</span> Day Streak
+                </div>
+            </div>
+        </div>
+
+        <button id="vic-next-level-btn" class="primary-btn hidden" style="margin-bottom:10px;">Next Level <i class="fas fa-arrow-right"></i></button>
+        <button id="vic-new-game-btn" class="primary-btn" style="margin-bottom:10px;">Play Again</button>
+        <button class="secondary-btn btn-go-home" style="width:100%; height:45px; border-radius:12px; border:1px solid var(--border); background:var(--glass); color:var(--txt);">
+            <i class="fas fa-home"></i> Home
+        </button>
+    </div>
+</div>
+
+<div id="game-over-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-orb" style="background:#ef4444"><i class="fas fa-times"></i></div>
+        <h2 class="modal-title">Game Over</h2>
+        <p class="modal-sub" id="go-sub">You made 3 mistakes.</p>
+        <button id="go-new-game-btn" class="primary-btn" style="margin-bottom:10px;">Try Again</button>
+        <button class="secondary-btn btn-go-home" style="width:100%; height:45px; border-radius:12px; border:1px solid var(--border); background:var(--glass); color:var(--txt);">
+            <i class="fas fa-home"></i> Home
+        </button>
+    </div>
+</div>
+
+<!-- STATISTICS MODAL -->
+<div id="stats-modal" class="modal-backdrop hidden">
+    <div class="modal-card stats-card" style="max-width: 600px; width: 95%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 class="modal-title" style="margin:0;">Performance Dashboard</h2>
+            <button id="btn-close-stats" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="stats-grid-v2" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px; max-height: 70vh; overflow-y: auto; padding: 5px; text-align: left;">
+            <div class="stat-box-v2" style="background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase;">Total Wins</div>
+                <div id="stat-v2-total-wins" style="font-size:1.8rem; font-weight:800; color:var(--accent);">0</div>
+            </div>
+            <div class="stat-box-v2" style="background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border); text-align:center;">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase;">Win Rate</div>
+                <div id="stat-v2-win-rate" style="font-size:1.8rem; font-weight:800; color:var(--accent-2);">0%</div>
+            </div>
+            <div class="stat-box-v2" style="grid-column: span 2; background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border);">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase; margin-bottom:10px;">Solve Time Improvement</div>
+                <div style="height:40px; background:rgba(255,255,255,0.05); border-radius:5px; position:relative; overflow:hidden;">
+                    <div id="stat-time-chart" style="height:100%; width:70%; background:var(--grad); opacity:0.6;"></div>
+                </div>
+            </div>
+            <div class="stat-box-v2" style="background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border);">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase;">Best Streak</div>
+                <div id="stat-v2-best-streak" style="font-size:1.4rem; font-weight:800;">0</div>
+            </div>
+            <div class="stat-box-v2" style="background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border);">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase;">Average Time</div>
+                <div id="stat-v2-avg-time" style="font-size:1.4rem; font-weight:800;">00:00</div>
+            </div>
+            <div class="stat-box-v2" style="grid-column: span 2; background:var(--glass); padding:15px; border-radius:15px; border:1px solid var(--border);">
+                <div style="font-size:0.7rem; color:var(--txt-dim); text-transform:uppercase; margin-bottom:10px;">Achievements Progress</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="stat-achievements-count" style="font-size:1rem; font-weight:800;">0 / 7</span>
+                    <div style="width:150px; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
+                        <div id="stat-achievements-progress" style="height:100%; width:0%; background:var(--accent);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="modal-backdrop hidden">
+    <div class="modal-card settings-card" style="max-width: 400px; width: 90%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 class="modal-title" style="margin:0;">Settings</h2>
+            <button id="btn-close-settings" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="settings-scroll-area" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+            <div class="setting-item">
+                <label>Theme</label>
+                <div id="theme-grid-opts" class="theme-grid">
+                    <button class="theme-opt active" data-t="dark" style="background:#080b14; border:1px solid #7c3aed;"></button>
+                    <button class="theme-opt" data-t="light" style="background:#ffffff; border:1px solid #ccc;"></button>
+                    <button class="theme-opt" data-t="neon" style="background:linear-gradient(45deg, #ff00ff, #00ffff);"></button>
+                    <button class="theme-opt" data-t="galaxy" style="background:linear-gradient(45deg, #1a1a40, #5b21b6);"></button>
+                    <button class="theme-opt" data-t="royal" style="background:linear-gradient(45deg, #111, #d4af37);"></button>
+                    <button class="theme-opt" data-t="forest" style="background:linear-gradient(45deg, #134e4a, #10b981);"></button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="toggle-row">
+                    <span>Sound Effects</span>
+                    <button class="toggle-btn active" id="toggle-sound"></button>
+                </div>
+            </div>
+            <div class="setting-item">
+                <label>Volume</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-volume-down" style="font-size:0.8rem; opacity:0.6;"></i>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5" style="flex:1; accent-color:var(--accent);">
+                    <i class="fas fa-volume-up" style="font-size:0.8rem; opacity:0.6;"></i>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="toggle-row">
+                    <span>Auto Complete</span>
+                    <button class="toggle-btn active" id="toggle-auto"></button>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="toggle-row">
+                    <span>Highlight Region</span>
+                    <button class="toggle-btn active" id="toggle-highlight"></button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label>Mistake Limit</label>
+                <div class="multi-select">
+                    <button class="multi-opt active" data-limit="3">3</button>
+                    <button class="multi-opt" data-limit="5">5</button>
+                    <button class="multi-opt" data-limit="0">∞</button>
+                </div>
+            </div>
+
+            <hr style="opacity:0.1; margin: 15px 0;">
+
+            <div class="settings-actions">
+                <button class="action-btn" id="btn-how-to"><i class="fas fa-question-circle"></i> How To Play</button>
+                <button class="action-btn" id="btn-achievements"><i class="fas fa-trophy"></i> Achievements</button>
+                <button class="action-btn" id="btn-stats"><i class="fas fa-chart-bar"></i> Statistics</button>
+                <button class="action-btn" id="btn-restart-lvl" style="color:#fbbf24;"><i class="fas fa-redo"></i> Restart Level</button>
+                <button class="action-btn" id="btn-exit-lvl" style="color:#ef4444;"><i class="fas fa-door-open"></i> Exit to Levels</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ACHIEVEMENTS MODAL -->
+<div id="achievements-modal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 500px; width: 95%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 class="modal-title" style="margin:0;">Achievements</h2>
+            <button id="btn-close-achievements" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="achievements-grid" class="achievements-grid clean-grid" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); max-height: 60vh; overflow-y: auto; padding: 10px;">
+            <!-- Achievements generated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- HOW TO PLAY MODAL -->
+<div id="how-to-modal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 500px; width: 95%; text-align: left; padding: 25px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 class="modal-title" style="margin:0;">How To Play</h2>
+            <button id="btn-close-how-to" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="mode-tabs mini-tabs" style="margin-bottom: 20px;">
+            <button class="how-to-tab active" data-mode="classic">Classic</button>
+            <button class="how-to-tab" data-mode="cross">Cross</button>
+            <button class="how-to-tab" data-mode="killer">Killer</button>
+            <button class="how-to-tab" data-mode="math">Math</button>
+            <button class="how-to-tab" data-mode="square">Square</button>
+            <button class="how-to-tab" data-mode="alphabet">Alpha</button>
+        </div>
+
+        <div id="how-to-content" style="min-height: 250px; font-size: 0.95rem; line-height: 1.6; color: var(--txt-dim);">
+            <!-- Content dynamic via JS -->
+            <div id="how-to-text">
+                <h3 style="color:var(--txt); margin-bottom:10px;">Classic Sudoku</h3>
+                <p>• Fill the 9x9 grid so that each <b>row</b>, each <b>column</b>, and each of the nine <b>3x3 subgrids</b> contains all of the digits from 1 to 9.</p>
+                <p>• No number can repeat in any row, column, or 3x3 box.</p>
+                <p>• The puzzle is solved when all cells are filled correctly.</p>
+            </div>
+        </div>
+        
+        <div style="margin-top:20px; text-align:center;">
+            <button id="btn-close-how-to-bottom" class="primary-btn">Got it!</button>
+        </div>
+    </div>
+</div>
+
+<!-- AUTHENTICATION / SAVE MODAL -->
+<div id="auth-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-orb" style="background:#8b5cf6"><i class="fas fa-save"></i></div>
+        <h2 class="modal-title">Save Progress?</h2>
+        <p class="modal-sub">Save your progress and continue by creating an account.</p>
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%; margin-top:20px;">
+            <button id="btn-auth-login" class="primary-btn" style="background:#4f46e5;">Login</button>
+            <button id="btn-auth-signup" class="primary-btn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">Sign Up</button>
+            <button id="btn-auth-guest" class="primary-btn" style="background:transparent; color:#94a3b8; padding:8px;">Continue as Guest</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

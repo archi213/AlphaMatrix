@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AlphaMatrix — The Ultimate Sudoku Experience</title>
+  <meta name="description" content="AlphaMatrix — A premium, futuristic sudoku game unlike anything you've played before.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       RESET
+    ══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #04060e;
+      color: #f0f4ff;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       CSS VARS
+    ══════════════════════════════════════════════════════════ */
+    :root {
+      --v:   #7c3aed;
+      --c:   #06b6d4;
+      --pk:  #ec4899;
+      --bg:  #04060e;
+      --glow-v: rgba(124,58,237,.6);
+      --glow-c: rgba(6,182,212,.5);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       HERO SECTION
+    ══════════════════════════════════════════════════════════ */
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 100vh; height: 100dvh;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* ── Layered background ── */
+    .hero-bg {
+      position: absolute;
+      inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 70% at 10% 5%,  rgba(124,58,237,.32) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 60% at 90% 90%, rgba(6,182,212,.26)  0%, transparent 60%),
+        radial-gradient(ellipse 50% 45% at 55% 40%, rgba(236,72,153,.14)  0%, transparent 55%),
+        #04060e;
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse {
+      0%   { filter: brightness(1);   }
+      100% { filter: brightness(1.10); }
+    }
+
+    /* ── Canvas (particles + sudoku grid) ── */
+    #hero-canvas {
+      position: absolute;
+      inset: 0; z-index: 1;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    /* ── Ambient orbs ── */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .orb-tl {
+      width: 60vmax; height: 60vmax;
+      background: radial-gradient(circle, rgba(124,58,237,.28) 0%, transparent 65%);
+      top: -28%; left: -20%;
+      animation: orbA 16s ease-in-out infinite alternate;
+    }
+    .orb-br {
+      width: 48vmax; height: 48vmax;
+      background: radial-gradient(circle, rgba(6,182,212,.22) 0%, transparent 65%);
+      bottom: -22%; right: -15%;
+      animation: orbB 12s ease-in-out infinite alternate;
+    }
+    .orb-mid {
+      width: 30vmax; height: 30vmax;
+      background: radial-gradient(circle, rgba(236,72,153,.15) 0%, transparent 60%);
+      top: 30%; left: 60%;
+      animation: orbC 20s ease-in-out infinite alternate;
+    }
+    @keyframes orbA { from{transform:translate(0,0) scale(1)} to{transform:translate(4%,5%) scale(1.07)} }
+    @keyframes orbB { from{transform:translate(0,0) scale(1)} to{transform:translate(-5%,-4%) scale(1.09)} }
+    @keyframes orbC { from{transform:translate(0,0)}           to{transform:translate(-3%,4%)} }
+
+    /* ── Noise texture overlay ── */
+    .hero-noise {
+      position: absolute; inset: 0; z-index: 2;
+      opacity: .03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    /* ── Scan-line effect ── */
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0; z-index: 2;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,.03) 2px,
+        rgba(0,0,0,.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       HERO CONTENT
+    ══════════════════════════════════════════════════════════ */
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 0 20px;
+    }
+
+    /* ── Eyebrow badge ── */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,58,237,.12);
+      border: 1px solid rgba(124,58,237,.35);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: .72rem;
+      font-weight: 700;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 28px;
+      animation: fadeSlideDown .7s .1s both ease-out;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #a78bfa;
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%,100% { transform: scale(1);   opacity: 1; }
+      50%      { transform: scale(1.6); opacity: .6; }
+    }
+
+    /* ── Main title ── */
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(3.2rem, 12vw, 8.5rem);
+      font-weight: 900;
+      line-height: .95;
+      letter-spacing: -3px;
+      margin-bottom: 0;
+      animation: fadeSlideUp .8s .25s both cubic-bezier(.34,1.56,.64,1);
+      position: relative;
+    }
+
+    /* Gradient text */
+    .title-alpha {
+      display: block;
+      background: linear-gradient(135deg, #f0f4ff 0%, #c4b5fd 40%, #7c3aed 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+    .title-matrix {
+      display: block;
+      background: linear-gradient(135deg, #06b6d4 0%, #a78bfa 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 40px rgba(124,58,237,.5));
+      animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes titleGlow {
+      from { filter: drop-shadow(0 0 30px rgba(124,58,237,.4)); }
+      to   { filter: drop-shadow(0 0 70px rgba(6,182,212,.6)); }
+    }
+
+    /* ── Subtitle ── */
+    .hero-sub {
+      font-size: clamp(.9rem, 2.5vw, 1.2rem);
+      font-weight: 400;
+      color: rgba(176,185,220,.7);
+      letter-spacing: .5px;
+      margin-top: 24px;
+      margin-bottom: 48px;
+      max-width: 480px;
+      animation: fadeSlideUp .7s .45s both ease-out;
+    }
+    .hero-sub strong {
+      color: #a78bfa;
+      font-weight: 600;
+    }
+
+    /* ── CTA Buttons ── */
+    .hero-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeSlideUp .7s .65s both ease-out;
+    }
+
+    .btn-start {
+      position: relative;
+      padding: 16px 42px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: .5px;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 6px 30px rgba(124,58,237,.5), 0 0 0 1px rgba(255,255,255,.08);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-start::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 60%);
+      pointer-events: none;
+    }
+    /* Animated shimmer sweep */
+    .btn-start::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+      transition: left .5s ease;
+    }
+    .btn-start:hover::after { left: 160%; }
+    .btn-start:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 44px rgba(124,58,237,.65), 0 0 80px rgba(124,58,237,.2);
+    }
+    .btn-start:active { transform: scale(.97); }
+
+    .btn-start .btn-icon {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem;
+      flex-shrink: 0;
+    }
+
+    .btn-watch {
+      padding: 16px 32px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: rgba(176,185,220,.85);
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all .2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-watch:hover {
+      border-color: rgba(124,58,237,.45);
+      background: rgba(124,58,237,.1);
+      color: #f0f4ff;
+      transform: translateY(-2px);
+    }
+
+    /* ── Stats row ── */
+    .hero-stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 64px;
+      animation: fadeSlideUp .7s .85s both ease-out;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(135deg, #f0f4ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label {
+      font-size: .7rem; font-weight: 600;
+      color: rgba(176,185,220,.45);
+      text-transform: uppercase; letter-spacing: 1.2px;
+    }
+
+    /* ── Nav top ── */
+    .top-nav {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: fadeSlideDown .6s .0s both ease-out;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 9px;
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(124,58,237,.6);
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.2rem; font-weight: 900;
+      color: #fff;
+    }
+    .nav-logo-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem; font-weight: 800;
+      color: #f0f4ff;
+      letter-spacing: -.3px;
+    }
+    .nav-logo-text em {
+      font-style: normal;
+      background: linear-gradient(135deg, #a78bfa, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+    .nav-btn {
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-family: 'Outfit', sans-serif;
+      font-size: .85rem; font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+      display: inline-block;
+    }
+    .nav-btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(176,185,220,.8);
+    }
+    .nav-btn-ghost:hover {
+      border-color: rgba(124,58,237,.5);
+      color: #f0f4ff;
+      background: rgba(124,58,237,.08);
+    }
+    .nav-btn-solid {
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 16px rgba(124,58,237,.4);
+    }
+    .nav-btn-solid:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(124,58,237,.55);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       SCROLL INDICATOR
+    ══════════════════════════════════════════════════════════ */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 36px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      animation: fadeSlideUp .6s 1.1s both ease-out;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .scroll-text {
+      font-size: .68rem;
+      font-weight: 600;
+      color: rgba(176,185,220,.4);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .scroll-mouse {
+      width: 24px; height: 38px;
+      border: 2px solid rgba(124,58,237,.5);
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding-top: 5px;
+    }
+    .scroll-wheel {
+      width: 3px; height: 7px;
+      background: linear-gradient(to bottom, #7c3aed, #06b6d4);
+      border-radius: 2px;
+      animation: wheelScroll 1.8s ease-in-out infinite;
+    }
+    @keyframes wheelScroll {
+      0%   { opacity: 1;   transform: translateY(0); }
+      60%  { opacity: .2;  transform: translateY(10px); }
+      100% { opacity: 0;   transform: translateY(14px); }
+    }
+    .scroll-arrows {
+      display: flex; flex-direction: column; gap: 2px; align-items: center;
+    }
+    .scroll-arrow {
+      width: 8px; height: 8px;
+      border-right: 2px solid rgba(124,58,237,.6);
+      border-bottom: 2px solid rgba(124,58,237,.6);
+      transform: rotate(45deg);
+      animation: arrowFade 1.8s ease-in-out infinite;
+    }
+    .scroll-arrow:nth-child(2) { animation-delay: .2s; opacity: .6; }
+    .scroll-arrow:nth-child(3) { animation-delay: .4s; opacity: .3; }
+    @keyframes arrowFade {
+      0%,100% { opacity: .8; }
+      50%      { opacity: .15; }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       SHARED SECTION TOKENS
+    ══════════════════════════════════════════════════════════ */
+    .section-label {
+      font-size: .72rem; font-weight: 700;
+      color: #a78bfa; letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 14px;
+      display: block;
+    }
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 800; line-height: 1.15; margin-bottom: 14px;
+      background: linear-gradient(135deg, #f0f4ff, #c4b5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-sub {
+      color: rgba(176,185,220,.6);
+      font-size: .95rem; line-height: 1.7;
+      max-width: 520px; margin: 0 auto 60px;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       PREMIUM FEATURES SECTION
+    ══════════════════════════════════════════════════════════ */
+    .features-section {
+      position: relative;
+      padding: 110px 20px 90px;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .features-section::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 55% 40% at 5%  30%, rgba(124,58,237,.13) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 95% 70%, rgba(6,182,212,.11) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .features-inner {
+      max-width: 1080px; margin: 0 auto; width: 100%;
+    }
+    .features-header { text-align: center; margin-bottom: 64px; }
+
+    /* ── 2×2 grid ── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+    }
+    @media (max-width: 680px) { .feat-grid { grid-template-columns: 1fr; } }
+
+    /* ── Base card ── */
+    .feat-card {
+      position: relative;
+      background: rgba(11,16,34,.8);
+      border-radius: 20px;
+      padding: 32px 30px 28px;
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.07);
+      transition:
+        transform .3s cubic-bezier(.34,1.3,.64,1),
+        box-shadow .3s ease,
+        border-color .3s ease;
+      cursor: default;
+    }
+
+    /* Glowing top border — colour per card */
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 10%; right: 10%; height: 1px;
+      background: var(--card-line, linear-gradient(90deg, transparent, rgba(124,58,237,.9), transparent));
+      opacity: .7;
+      transition: opacity .3s, left .3s, right .3s;
+    }
+    /* Bottom ambient glow */
+    .feat-card::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 50%;
+      transform: translateX(-50%);
+      width: 60%; height: 80px;
+      background: var(--card-glow, rgba(124,58,237,.18));
+      filter: blur(28px);
+      pointer-events: none;
+      transition: opacity .3s;
+      opacity: .6;
+    }
+
+    .feat-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: var(--card-border, rgba(124,58,237,.4));
+      box-shadow:
+        0 20px 60px rgba(0,0,0,.5),
+        0 0 0 1px var(--card-border, rgba(124,58,237,.25)),
+        var(--card-shadow, 0 0 40px rgba(124,58,237,.18));
+    }
+    .feat-card:hover::before { left: 0; right: 0; opacity: 1; }
+    .feat-card:hover::after  { opacity: 1; }
+
+    /* Per-card colour tokens */
+    .fc-violet {
+      --card-line:   linear-gradient(90deg, transparent, rgba(124,58,237,1), transparent);
+      --card-glow:   rgba(124,58,237,.22);
+      --card-border: rgba(124,58,237,.45);
+      --card-shadow: 0 0 50px rgba(124,58,237,.2);
+      --card-accent: #a78bfa;
+    }
+    .fc-cyan {
+      --card-line:   linear-gradient(90deg, transparent, rgba(6,182,212,1), transparent);
+      --card-glow:   rgba(6,182,212,.2);
+      --card-border: rgba(6,182,212,.45);
+      --card-shadow: 0 0 50px rgba(6,182,212,.2);
+      --card-accent: #67e8f9;
+    }
+    .fc-pink {
+      --card-line:   linear-gradient(90deg, transparent, rgba(236,72,153,1), transparent);
+      --card-glow:   rgba(236,72,153,.2);
+      --card-border: rgba(236,72,153,.45);
+      --card-shadow: 0 0 50px rgba(236,72,153,.2);
+      --card-accent: #f9a8d4;
+    }
+    .fc-amber {
+      --card-line:   linear-gradient(90deg, transparent, rgba(251,191,36,1), transparent);
+      --card-glow:   rgba(251,191,36,.18);
+      --card-border: rgba(251,191,36,.45);
+      --card-shadow: 0 0 50px rgba(251,191,36,.18);
+      --card-accent: #fcd34d;
+    }
+
+    /* ── Card icon badge ── */
+    .fc-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      position: relative; z-index: 1;
+      transition: transform .3s;
+    }
+    .feat-card:hover .fc-icon { transform: scale(1.12) rotate(-4deg); }
+
+    /* ── Card text ── */
+    .fc-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.18rem; font-weight: 800;
+      color: #f0f4ff; margin-bottom: 8px;
+      position: relative; z-index: 1;
+    }
+    .fc-desc {
+      font-size: .85rem; color: rgba(176,185,220,.58);
+      line-height: 1.7; margin-bottom: 22px;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Card accent tag ── */
+    .fc-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: .7rem; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      color: var(--card-accent, #a78bfa);
+      position: relative; z-index: 1;
+      margin-bottom: 22px;
+    }
+    .fc-tag-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--card-accent, #a78bfa);
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+
+    /* ══ CARD VISUAL DEMOS ══ */
+
+    /* --- Difficulty level bars --- */
+    .diff-demo {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .diff-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+    }
+    .diff-label {
+      font-size: .72rem; font-weight: 600;
+      color: rgba(176,185,220,.55);
+      width: 52px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .diff-bar-wrap {
+      flex: 1; height: 6px;
+      background: rgba(255,255,255,.06);
+      border-radius: 4px; overflow: hidden;
+    }
+    .diff-bar {
+      height: 100%; border-radius: 4px;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .8s cubic-bezier(.34,1.2,.64,1);
+    }
+    .diff-bar.easy   { background: linear-gradient(90deg,#10b981,#34d399); width: 25%; }
+    .diff-bar.medium { background: linear-gradient(90deg,#06b6d4,#67e8f9); width: 50%; }
+    .diff-bar.hard   { background: linear-gradient(90deg,#7c3aed,#a78bfa); width: 75%; }
+    .diff-bar.expert { background: linear-gradient(90deg,#ec4899,#f9a8d4); width: 100%; }
+    .feat-card.reveal.visible .diff-bar { transform: scaleX(1); }
+    .diff-badge {
+      font-size: .68rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 100px;
+    }
+    .db-e { background: rgba(16,185,129,.15); color: #34d399; }
+    .db-m { background: rgba(6,182,212,.15);  color: #67e8f9; }
+    .db-h { background: rgba(124,58,237,.15); color: #a78bfa; }
+    .db-x { background: rgba(236,72,153,.15); color: #f9a8d4; }
+
+    /* --- Notes cell demo --- */
+    .notes-demo {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 6px;
+      max-width: 180px;
+    }
+    .note-cell {
+      aspect-ratio: 1;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      grid-template-rows: repeat(3,1fr);
+      padding: 4px;
+      gap: 1px;
+    }
+    .note-cell.active {
+      border-color: rgba(6,182,212,.5);
+      background: rgba(6,182,212,.07);
+      box-shadow: inset 0 0 0 1px rgba(6,182,212,.3);
+    }
+    .note-cell.big {
+      align-items: center; justify-content: center;
+      display: flex;
+      grid-template-columns: none; grid-template-rows: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem; font-weight: 800;
+      color: rgba(240,244,255,.8);
+    }
+    .note-digit {
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: .48rem; font-weight: 700;
+      color: rgba(103,232,249,.6);
+      line-height: 1;
+    }
+    .note-digit.blank { opacity: 0; }
+
+    /* --- Hints demo --- */
+    .hints-demo {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .hint-cells {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 4px;
+    }
+    .hc {
+      width: 36px; height: 36px;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: .9rem; font-weight: 700;
+      color: rgba(240,244,255,.65);
+      transition: all .4s;
+    }
+    .hc.reveal-hint {
+      background: rgba(251,191,36,.15);
+      border-color: rgba(251,191,36,.55);
+      color: #fcd34d;
+      box-shadow: 0 0 16px rgba(251,191,36,.3);
+      animation: hintPop .6s .3s both cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes hintPop {
+      from { transform: scale(.6); opacity: 0; }
+      to   { transform: scale(1);  opacity: 1; }
+    }
+    .hint-counter {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+    }
+    .hint-bulbs {
+      display: flex; gap: 5px;
+    }
+    .hint-bulb {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(251,191,36,.2);
+      border: 1.5px solid rgba(251,191,36,.4);
+      transition: all .3s;
+    }
+    .hint-bulb.used { background: #fcd34d; border-color: #fcd34d; box-shadow: 0 0 8px rgba(251,191,36,.7); }
+    .hint-label { font-size: .65rem; color: rgba(176,185,220,.4); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* --- Timer demo --- */
+    .timer-demo {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .timer-display {
+      display: flex; align-items: baseline; gap: 4px;
+    }
+    .timer-digits {
+      font-family: 'Space Mono', 'Outfit', monospace;
+      font-size: 2.2rem; font-weight: 700;
+      background: linear-gradient(135deg, #f0f4ff, #fcd34d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+    .timer-unit { font-size: .75rem; color: rgba(176,185,220,.4); font-weight: 600; }
+    .timer-bar-wrap {
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.06); overflow: hidden;
+    }
+    .timer-bar-fill {
+      height: 100%; border-radius: 2px; width: 62%;
+      background: linear-gradient(90deg,#7c3aed,#fcd34d);
+      animation: timerProg 3s ease-in-out infinite alternate;
+    }
+    @keyframes timerProg {
+      from { width: 20%; }
+      to   { width: 80%; }
+    }
+    .timer-stats {
+      display: flex; gap: 16px;
+    }
+    .timer-stat {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .ts-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: .9rem; font-weight: 700;
+      color: #f0f4ff;
+    }
+    .ts-lbl { font-size: .65rem; color: rgba(176,185,220,.4); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+
+    /* CTA at bottom */
+    .final-cta {
+      padding: 60px 20px 100px;
+      text-align: center;
+    }
+    .final-cta h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 800; margin-bottom: 24px;
+      background: linear-gradient(135deg, #f0f4ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       KEY ANIMATIONS
+    ══════════════════════════════════════════════════════════ */
+    @keyframes fadeSlideDown {
+      from { opacity:0; transform:translateY(-22px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity:0; transform:translateY(28px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       EXIT VEIL
+    ══════════════════════════════════════════════════════════ */
+    #exit-veil {
+      position: fixed; inset: 0;
+      background: #04060e;
+      z-index: 9999;
+      opacity: 0; pointer-events: none;
+      transition: opacity .45s ease;
+    }
+    #exit-veil.on { opacity: 1; pointer-events: all; }
+
+    /* ══════════════════════════════════════════════════════════
+       HOW TO PLAY SECTION
+    ══════════════════════════════════════════════════════════ */
+
+    /* ── Section shell ── */
+    .htp-section {
+      position: relative;
+      padding: 90px 20px 80px;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .htp-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(124,58,237,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 80%, rgba(6,182,212,.10)  0%, transparent 60%);
+      pointer-events: none;
+    }
+    .htp-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Section header ── */
+    .htp-header { text-align: center; margin-bottom: 72px; }
+
+    /* ── WHAT IS SUDOKU — split layout ── */
+    .what-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      margin-bottom: 80px;
+    }
+    @media (max-width: 700px) { .what-wrap { grid-template-columns: 1fr; gap: 32px; } }
+
+    .what-text h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #f0f4ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .what-text p {
+      color: rgba(176,185,220,.65);
+      font-size: .92rem;
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+    .what-text p:last-child { margin-bottom: 0; }
+    .what-text strong { color: #a78bfa; font-weight: 600; }
+
+    /* Mini live grid demo */
+    .mini-grid-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      width: min(300px, 85vw);
+      aspect-ratio: 1;
+      border: 2px solid rgba(124,58,237,.45);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(124,58,237,.2), 0 8px 32px rgba(0,0,0,.5);
+      background: rgba(12,18,38,.8);
+      backdrop-filter: blur(12px);
+    }
+    .mg-cell {
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(.55rem, 1.2vw, .85rem);
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,.06);
+      transition: background .3s;
+      color: rgba(167,139,250,.65);
+    }
+    .mg-cell.given   { color: rgba(240,244,255,.75); }
+    .mg-cell.box-r   { border-right:  2px solid rgba(124,58,237,.4) !important; }
+    .mg-cell.box-b   { border-bottom: 2px solid rgba(124,58,237,.4) !important; }
+    .mg-cell.hl-row, .mg-cell.hl-col, .mg-cell.hl-box { background: rgba(124,58,237,.10); }
+    .mg-cell.hl-sel  { background: rgba(124,58,237,.35) !important; box-shadow: inset 0 0 0 2px rgba(124,58,237,.7); }
+    .mg-cell.hl-same { background: rgba(124,58,237,.18) !important; }
+
+    /* ── RULES CARDS ── */
+    .rules-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 36px;
+      background: linear-gradient(135deg, #f0f4ff, #67e8f9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 80px;
+    }
+    .rule-card {
+      background: rgba(12,18,38,.75);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 16px;
+      padding: 24px 22px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      backdrop-filter: blur(14px);
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+      position: relative; overflow: hidden;
+    }
+    .rule-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--rule-accent, rgba(124,58,237,.7)), transparent);
+      opacity: 0; transition: opacity .3s;
+    }
+    .rule-card:hover { transform: translateY(-4px); border-color: rgba(124,58,237,.25); box-shadow: 0 14px 40px rgba(0,0,0,.4); }
+    .rule-card:hover::after { opacity: 1; }
+    --rule-accent: rgba(124,58,237,.7);
+
+    .rule-num-wrap {
+      flex-shrink: 0;
+      width: 42px; height: 42px;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem; font-weight: 900;
+      color: #fff;
+    }
+    .rn-v { background: rgba(124,58,237,.2); color: #a78bfa; }
+    .rn-c { background: rgba(6,182,212,.2);  color: #67e8f9; }
+    .rn-p { background: rgba(236,72,153,.2); color: #f9a8d4; }
+    .rn-g { background: rgba(251,191,36,.2); color: #fcd34d; }
+    .rn-e { background: rgba(52,211,153,.2); color: #6ee7b7; }
+
+    .rule-body { flex: 1; }
+    .rule-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: .97rem; font-weight: 700;
+      color: #f0f4ff;
+      margin-bottom: 6px;
+    }
+    .rule-desc { font-size: .82rem; color: rgba(176,185,220,.55); line-height: 1.65; }
+
+    /* ── HOW TO PLAY — step pills ── */
+    .steps-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 44px;
+      background: linear-gradient(135deg, #f0f4ff, #f9a8d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .step-row {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      background: rgba(12,18,38,.7);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 20px 22px;
+      backdrop-filter: blur(12px);
+      transition: transform .25s, border-color .25s;
+    }
+    .step-row:hover { transform: translateX(6px); border-color: rgba(124,58,237,.3); }
+    .step-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: .9rem; font-weight: 900;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(124,58,237,.4);
+    }
+    .step-content { flex: 1; }
+    .step-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: .97rem; font-weight: 700;
+      color: #f0f4ff;
+      margin-bottom: 5px;
+    }
+    .step-desc { font-size: .82rem; color: rgba(176,185,220,.55); line-height: 1.65; }
+    .step-tag {
+      display: inline-block;
+      margin-top: 7px;
+      padding: 3px 9px;
+      border-radius: 100px;
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+    .tag-v { background: rgba(124,58,237,.18); color: #a78bfa; }
+    .tag-c { background: rgba(6,182,212,.18);  color: #67e8f9; }
+    .tag-p { background: rgba(236,72,153,.18); color: #f9a8d4; }
+    .tag-g { background: rgba(251,191,36,.18); color: #fcd34d; }
+    .tag-e { background: rgba(52,211,153,.18); color: #6ee7b7; }
+
+    /* Horizontal divider between sub-sections */
+    .htp-divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,.3), rgba(6,182,212,.3), transparent);
+      margin: 72px 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════════════════ */
+    @media (max-width: 600px) {
+      .top-nav { padding: 18px 20px; }
+      .hero-stats { gap: 20px; }
+      .stat-num { font-size: 1.3rem; }
+      .btn-watch { display: none; }
+    }
+    @media (max-width: 400px) {
+      .nav-btn-ghost { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- EXIT VEIL -->
+<div id="exit-veil" aria-hidden="true"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+
+  <!-- Background layers -->
+  <div class="hero-bg"    aria-hidden="true"></div>
+  <div class="orb orb-tl" aria-hidden="true"></div>
+  <div class="orb orb-br" aria-hidden="true"></div>
+  <div class="orb orb-mid" aria-hidden="true"></div>
+  <div class="hero-noise"  aria-hidden="true"></div>
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+
+  <!-- Top nav -->
+  <nav class="top-nav" role="navigation" aria-label="Main navigation">
+    <a class="nav-logo" href="landing.html" aria-label="AlphaMatrix home">
+      <div class="nav-logo-icon" aria-hidden="true">α</div>
+      <span class="nav-logo-text">Alpha<em>Matrix</em></span>
+    </a>
+    <div class="nav-actions">
+      <a class="nav-btn nav-btn-solid" href="login.html" id="nav-cta">Play Now</a>
+    </div>
+  </nav>
+
+  <!-- Hero content -->
+  <div class="hero-content" role="main">
+
+
+    <h1 class="hero-title" aria-label="AlphaMatrix">
+      <span class="title-alpha">Alpha</span>
+      <span class="title-matrix">Matrix</span>
+    </h1>
+
+    <p class="hero-sub">
+      The <strong>Ultimate Sudoku Experience</strong>.
+      Futuristic. Immersive. Unmatched.
+    </p>
+
+    <div class="hero-btns">
+      <a class="btn-start" href="#" id="btn-start" aria-label="Start the game">
+        <span class="btn-icon" aria-hidden="true">▶</span>
+        Start Game
+      </a>
+      <a class="btn-watch" href="#features" aria-label="Learn more about features">
+        <span aria-hidden="true">✦</span> Explore Features
+      </a>
+    </div>
+
+    <div class="hero-stats" aria-label="Game statistics" style="display: flex; gap: 48px; margin-top: 64px; justify-content: center; flex-wrap: wrap;">
+      <div class="stat">
+        <i class="fas fa-calendar-check" style="color: var(--pk); font-size: 1.2rem; margin-bottom: 8px;"></i>
+        <span class="stat-num">Daily</span>
+        <span class="stat-label">Challenges</span>
+      </div>
+      <div class="stat">
+        <i class="fas fa-puzzle-piece" style="color: var(--v); font-size: 1.2rem; margin-bottom: 8px;"></i>
+        <span class="stat-num" id="cnt-modes">6</span>
+        <span class="stat-label">Game Modes</span>
+      </div>
+      <div class="stat">
+        <i class="fas fa-layer-group" style="color: var(--c); font-size: 1.2rem; margin-bottom: 8px;"></i>
+        <span class="stat-num">4</span>
+        <span class="stat-label">Difficulty Levels</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scroll indicator -->
+  <a class="scroll-indicator" href="#features" aria-label="Scroll to features">
+    <span class="scroll-text">Scroll</span>
+    <div class="scroll-mouse" aria-hidden="true">
+      <span class="scroll-wheel"></span>
+    </div>
+    <div class="scroll-arrows" aria-hidden="true">
+      <span class="scroll-arrow"></span>
+      <span class="scroll-arrow"></span>
+      <span class="scroll-arrow"></span>
+    </div>
+  </a>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PREMIUM FEATURES SECTION
+══════════════════════════════════════════════════════════ -->
+<section class="features-section" id="features" aria-label="AlphaMatrix game features">
+  <div class="features-inner">
+
+    <div class="features-header reveal">
+      <span class="section-label">Packed with Power</span>
+      <h2 class="section-title">Everything You Need to Win</h2>
+      <p class="section-sub">Four core systems, meticulously designed to make every puzzle session feel effortless, immersive, and rewarding.</p>
+    </div>
+
+    <div class="feat-grid">
+
+      <!-- ── Card 1: Difficulty Levels ── -->
+      <div class="feat-card fc-violet reveal delay-1">
+        <div class="fc-icon" aria-hidden="true">🎮</div>
+        <h3 class="fc-title">Difficulty Levels</h3>
+        <p class="fc-desc">Four carefully tuned planes of challenge. Start light or dive straight into the deep end — the Matrix adapts to you.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> 4 Modes</div>
+        <!-- Visual demo: animated bars -->
+        <div class="diff-demo" aria-label="Difficulty level comparison">
+          <div class="diff-row">
+            <span class="diff-label">Easy</span>
+            <div class="diff-bar-wrap"><div class="diff-bar easy"></div></div>
+            <span class="diff-badge db-e">36 clues</span>
+          </div>
+          <div class="diff-row">
+            <span class="diff-label">Medium</span>
+            <div class="diff-bar-wrap"><div class="diff-bar medium"></div></div>
+            <span class="diff-badge db-m">28 clues</span>
+          </div>
+          <div class="diff-row">
+            <span class="diff-label">Hard</span>
+            <div class="diff-bar-wrap"><div class="diff-bar hard"></div></div>
+            <span class="diff-badge db-h">22 clues</span>
+          </div>
+          <div class="diff-row">
+            <span class="diff-label">Extreme</span>
+            <div class="diff-bar-wrap"><div class="diff-bar expert"></div></div>
+            <span class="diff-badge db-x">17 clues</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card 2: Notes Mode ── -->
+      <div class="feat-card fc-cyan reveal delay-2">
+        <div class="fc-icon" aria-hidden="true">✏️</div>
+        <h3 class="fc-title">Notes Mode</h3>
+        <p class="fc-desc">Pencil in candidate digits inside any cell. Track your possibilities without committing — your strategy, your way.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> Press N to toggle</div>
+        <!-- Visual demo: note grid -->
+        <div class="notes-demo" aria-label="Notes mode cell demo">
+          <div class="note-cell">
+            <span class="note-digit">1</span><span class="note-digit blank">2</span><span class="note-digit">3</span>
+            <span class="note-digit blank">4</span><span class="note-digit">5</span><span class="note-digit blank">6</span>
+            <span class="note-digit">7</span><span class="note-digit blank">8</span><span class="note-digit">9</span>
+          </div>
+          <div class="note-cell active">
+            <span class="note-digit blank">1</span><span class="note-digit">2</span><span class="note-digit blank">3</span>
+            <span class="note-digit">4</span><span class="note-digit blank">5</span><span class="note-digit">6</span>
+            <span class="note-digit blank">7</span><span class="note-digit">8</span><span class="note-digit blank">9</span>
+          </div>
+          <div class="note-cell big">7</div>
+          <div class="note-cell big">3</div>
+          <div class="note-cell">
+            <span class="note-digit">1</span><span class="note-digit blank">2</span><span class="note-digit">3</span>
+            <span class="note-digit blank">4</span><span class="note-digit blank">5</span><span class="note-digit">6</span>
+            <span class="note-digit blank">7</span><span class="note-digit blank">8</span><span class="note-digit">9</span>
+          </div>
+          <div class="note-cell big">5</div>
+          <div class="note-cell big">9</div>
+          <div class="note-cell">
+            <span class="note-digit blank">1</span><span class="note-digit">2</span><span class="note-digit blank">3</span>
+            <span class="note-digit">4</span><span class="note-digit blank">5</span><span class="note-digit blank">6</span>
+            <span class="note-digit blank">7</span><span class="note-digit">8</span><span class="note-digit blank">9</span>
+          </div>
+          <div class="note-cell big">1</div>
+        </div>
+      </div>
+
+      <!-- ── Card 3: Hint System ── -->
+      <div class="feat-card fc-amber reveal delay-3">
+        <div class="fc-icon" aria-hidden="true">💡</div>
+        <h3 class="fc-title">Smart Hint System</h3>
+        <p class="fc-desc">Stuck? Spend a hint to illuminate one correct cell. Hints are precious — use them wisely and keep the streak alive.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> 3 hints per game</div>
+        <!-- Visual demo: cells + bulbs -->
+        <div class="hints-demo" aria-label="Hint system demo">
+          <div class="hint-cells">
+            <div class="hc">5</div><div class="hc">3</div><div class="hc"></div>
+            <div class="hc">6</div><div class="hc"></div><div class="hc"></div>
+            <div class="hc"></div><div class="hc reveal-hint" aria-label="Hint revealed: 8">8</div><div class="hc"></div>
+          </div>
+          <div class="hint-counter">
+            <div class="hint-bulbs">
+              <div class="hint-bulb used" aria-label="Hint used"></div>
+              <div class="hint-bulb" aria-label="Hint available"></div>
+              <div class="hint-bulb" aria-label="Hint available"></div>
+            </div>
+            <span class="hint-label">Hints left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card 4: Timer ── -->
+      <div class="feat-card fc-pink reveal delay-4">
+        <div class="fc-icon" aria-hidden="true">⏱️</div>
+        <h3 class="fc-title">Live Timer</h3>
+        <p class="fc-desc">Race against time or play at your own pace. Pause anytime, track your personal bests, and see how fast you can conquer each difficulty.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> Pause anytime</div>
+        <!-- Visual demo: timer display -->
+        <div class="timer-demo" aria-label="Timer feature demo">
+          <div class="timer-display">
+            <span class="timer-digits" id="demo-timer" aria-live="polite">04:27</span>
+            <span class="timer-unit">elapsed</span>
+          </div>
+          <div class="timer-bar-wrap" aria-hidden="true">
+            <div class="timer-bar-fill"></div>
+          </div>
+          <div class="timer-stats">
+            <div class="timer-stat"><span class="ts-val">02:14</span><span class="ts-lbl">Best Easy</span></div>
+            <div class="timer-stat"><span class="ts-val">07:51</span><span class="ts-lbl">Best Hard</span></div>
+            <div class="timer-stat"><span class="ts-val">23</span><span class="ts-lbl">Streak</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card 5: Game Modes ── -->
+      <div class="feat-card fc-violet reveal delay-5">
+        <div class="fc-icon" aria-hidden="true">🧩</div>
+        <h3 class="fc-title">Six Game Modes</h3>
+        <p class="fc-desc">Classic, Cross, Killer, Math, Square, and Alphabet. Every mode brings a unique logical twist to keep your mind sharp.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> Endless Variety</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:15px;">
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(124,58,237,0.3)">Classic</div>
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(6,182,212,0.3)">Cross</div>
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(236,72,153,0.3)">Killer</div>
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(251,191,36,0.3)">Math</div>
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(16,185,129,0.3)">Square</div>
+            <div style="background:rgba(255,255,255,0.05); padding:6px; border-radius:8px; font-size:0.7rem; text-align:center; border:1px solid rgba(124,58,237,0.3)">Alpha</div>
+        </div>
+      </div>
+
+      <!-- ── Card 6: Daily Challenge ── -->
+      <div class="feat-card fc-pink reveal delay-6">
+        <div class="fc-icon" aria-hidden="true">📅</div>
+        <h3 class="fc-title">Daily Challenge</h3>
+        <p class="fc-desc">A fresh, hand-picked puzzle every single day. Compete with the world, earn unique trophies, and never miss a beat.</p>
+        <div class="fc-tag"><span class="fc-tag-dot" aria-hidden="true"></span> New every 24h</div>
+        <div style="margin-top:20px; background:rgba(255,255,255,0.05); border-radius:12px; padding:15px; border:1px solid rgba(236,72,153,0.3); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:0.8rem; font-weight:800; color:#f9a8d4;">Today's Pick</div>
+                <div style="font-size:0.7rem; opacity:0.6;">Hard • Killer Mode</div>
+            </div>
+            <div style="background:rgba(236,72,153,0.2); color:#f9a8d4; padding:6px 12px; border-radius:8px; font-size:0.8rem; font-weight:700;">PLAY</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── DAILY CHALLENGE PREVIEW ── -->
+<section class="daily-preview-section" style="position:relative; padding:80px 20px; background:rgba(124,58,237,0.03); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; align-items:center; gap:60px; flex-wrap:wrap; justify-content:center;">
+        <div style="flex:1; min-width:300px;">
+            <span class="section-label" style="color:#ec4899">The Daily Ritual</span>
+            <h2 class="section-title">Face the Matrix</h2>
+            <p class="section-sub" style="margin-left:0; text-align:left;">Every day at midnight, a new masterpiece is generated. One puzzle, one chance to prove your mastery. Are you ready for today's challenge?</p>
+            <div style="display:flex; gap:15px; margin-top:30px;">
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid rgba(255,255,255,0.1); flex:1; text-align:center;">
+                    <div style="font-size:1.5rem; font-weight:900; color:#f0f4ff;">4,281</div>
+                    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:rgba(176,185,220,0.5)">Players Today</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; border:1px solid rgba(255,255,255,0.1); flex:1; text-align:center;">
+                    <div style="font-size:1.5rem; font-weight:900; color:#fcd34d;">08:14</div>
+                    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:rgba(176,185,220,0.5)">Avg. Time</div>
+                </div>
+            </div>
+            <a href="index.html?start=true&mode=daily" class="btn-start" style="margin-top:40px; width:100%; justify-content:center;">
+                Solve Today's Challenge <i class="fas fa-calendar-star"></i>
+            </a>
+        </div>
+        <div style="flex:1; min-width:300px; display:flex; justify-content:center;">
+            <!-- Placeholder for a mini board preview -->
+            <div style="width:100%; max-width:400px; aspect-ratio:1; background:rgba(0,0,0,0.3); border-radius:20px; border:2px solid rgba(236,72,153,0.3); position:relative; overflow:hidden; display:grid; grid-template-columns:repeat(9,1fr); padding:5px; gap:2px;">
+                <!-- Generating a few decorative cells -->
+                <script>
+                    for(let i=0; i<81; i++) {
+                        let isGiven = Math.random() > 0.7;
+                        document.write(`<div style="background:rgba(255,255,255,${isGiven ? '0.08' : '0.02'}); border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:800; color:rgba(255,255,255,${isGiven ? '0.6' : '0.1'})">${isGiven ? Math.floor(Math.random()*9)+1 : ''}</div>`);
+                    }
+                </script>
+                <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 60%, rgba(124,58,237,0.4)); pointer-events:none;"></div>
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.6); padding:10px 20px; border-radius:100px; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(10px); color:#fff; font-weight:800; font-size:0.9rem; white-space:nowrap;">PREVIEW LOCKED</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW TO PLAY SECTION
+══════════════════════════════════════════════════════════ -->
+<section class="htp-section" id="how-to-play" aria-label="How to play Sudoku">
+  <div class="htp-inner">
+
+    <!-- Section header -->
+    <div class="htp-header reveal">
+      <p class="section-label">Learn the Game</p>
+      <h2 class="section-title">How to Play AlphaMatrix</h2>
+      <p class="section-sub">New to Sudoku? Master the rules in minutes and start solving like a pro.</p>
+    </div>
+
+    <!-- ── WHAT IS SUDOKU ── -->
+    <div class="what-wrap">
+
+      <div class="what-text reveal from-left">
+        <h3>What is Sudoku?</h3>
+        <p>Sudoku is a <strong>logic-based number puzzle</strong> played on a 9×9 grid. The goal is simple: fill every cell with digits 1–9 following three strict rules — no guessing required.</p>
+        <p>It trains <strong>pattern recognition</strong>, logical deduction, and focus. No math skills needed — just pure reasoning and strategy.</p>
+        <p>AlphaMatrix elevates this timeless challenge with a <strong>futuristic interface</strong>, smart tools, and beautifully visualised puzzles.</p>
+      </div>
+
+      <div class="mini-grid-wrap reveal from-right">
+        <div class="mini-grid" id="mini-grid" role="grid" aria-label="Example sudoku grid"></div>
+      </div>
+
+    </div>
+
+    <div class="htp-divider" aria-hidden="true"></div>
+
+    <!-- ── THREE RULES ── -->
+    <p class="rules-heading reveal">The 3 Golden Rules</p>
+    <div class="rules-grid">
+
+      <div class="rule-card reveal delay-1">
+        <div class="rule-num-wrap rn-v" aria-hidden="true">↔</div>
+        <div class="rule-body">
+          <p class="rule-title">One: Rows</p>
+          <p class="rule-desc">Every <strong style="color:#a78bfa">row</strong> must contain the digits 1 through 9, each appearing exactly once — no repeats allowed.</p>
+        </div>
+      </div>
+
+      <div class="rule-card reveal delay-2">
+        <div class="rule-num-wrap rn-c" aria-hidden="true">↕</div>
+        <div class="rule-body">
+          <p class="rule-title">Two: Columns</p>
+          <p class="rule-desc">Every <strong style="color:#67e8f9">column</strong> must also contain each digit from 1 to 9 exactly once — top to bottom.</p>
+        </div>
+      </div>
+
+      <div class="rule-card reveal delay-3">
+        <div class="rule-num-wrap rn-p" aria-hidden="true">⊞</div>
+        <div class="rule-body">
+          <p class="rule-title">Three: Boxes</p>
+          <p class="rule-desc">Each of the nine <strong style="color:#f9a8d4">3×3 boxes</strong> must contain the digits 1–9 exactly once. These regions are the key constraint.</p>
+        </div>
+      </div>
+
+      <div class="rule-card reveal delay-1">
+        <div class="rule-num-wrap rn-g" aria-hidden="true">🔒</div>
+        <div class="rule-body">
+          <p class="rule-title">Pre-filled Clues</p>
+          <p class="rule-desc">Some cells are pre-filled at the start. These <strong style="color:#fcd34d">given digits</strong> cannot be changed — they are your anchors.</p>
+        </div>
+      </div>
+
+      <div class="rule-card reveal delay-2">
+        <div class="rule-num-wrap rn-e" aria-hidden="true">✓</div>
+        <div class="rule-body">
+          <p class="rule-title">One Solution</p>
+          <p class="rule-desc">Every AlphaMatrix puzzle has <strong style="color:#6ee7b7">exactly one valid solution</strong> — no guessing needed. Logic always wins.</p>
+        </div>
+      </div>
+
+      <div class="rule-card reveal delay-3">
+        <div class="rule-num-wrap rn-v" aria-hidden="true">✦</div>
+        <div class="rule-body">
+          <p class="rule-title">No Math Required</p>
+          <p class="rule-desc">The numbers are just <strong style="color:#a78bfa">symbols</strong>. You could use letters A–I — it's pure pattern logic, not arithmetic.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="htp-divider" aria-hidden="true"></div>
+
+    <!-- ── HOW TO PLAY STEPS ── -->
+    <p class="steps-heading reveal">Step-by-Step Gameplay</p>
+    <div class="steps-list">
+
+      <div class="step-row reveal delay-1">
+        <div class="step-num" aria-hidden="true">1</div>
+        <div class="step-content">
+          <p class="step-title">Choose Your Difficulty</p>
+          <p class="step-desc">Select Easy, Medium, Hard, or Extreme. Harder levels remove more clues, leaving fewer anchors to work from.</p>
+          <span class="step-tag tag-v">Easy → Extreme</span>
+        </div>
+      </div>
+
+      <div class="step-row reveal delay-2">
+        <div class="step-num" aria-hidden="true">2</div>
+        <div class="step-content">
+          <p class="step-title">Tap a Cell to Select It</p>
+          <p class="step-desc">Click or tap any empty cell. AlphaMatrix highlights the entire row, column, and 3×3 box to help you spot conflicts instantly.</p>
+          <span class="step-tag tag-c">Visual Guidance</span>
+        </div>
+      </div>
+
+      <div class="step-row reveal delay-3">
+        <div class="step-num" aria-hidden="true">3</div>
+        <div class="step-content">
+          <p class="step-title">Enter Your Number</p>
+          <p class="step-desc">Tap a digit on the number pad (or press 1–9 on keyboard). Correct digits lock in; wrong ones count as a mistake — you have 3 lives.</p>
+          <span class="step-tag tag-p">3 Mistakes = Game Over</span>
+        </div>
+      </div>
+
+      <div class="step-row reveal delay-4">
+        <div class="step-num" aria-hidden="true">4</div>
+        <div class="step-content">
+          <p class="step-title">Use Notes for Possibilities</p>
+          <p class="step-desc">Toggle <strong style="color:#a78bfa">Notes Mode</strong> to pencil in candidate numbers inside a cell. Great for tracking which digits are still possible.</p>
+          <span class="step-tag tag-v">Press N to toggle</span>
+        </div>
+      </div>
+
+      <div class="step-row reveal delay-5">
+        <div class="step-num" aria-hidden="true">5</div>
+        <div class="step-content">
+          <p class="step-title">Use Hints &amp; Undo Wisely</p>
+          <p class="step-desc">Stuck? Use a <strong style="color:#fcd34d">Hint</strong> to reveal one correct cell. Made a mistake? <strong style="color:#f9a8d4">Undo</strong> rolls back your last move. Use them sparingly!</p>
+          <span class="step-tag tag-g">Limited per puzzle</span>
+        </div>
+      </div>
+
+      <div class="step-row reveal delay-3">
+        <div class="step-num" aria-hidden="true">✓</div>
+        <div class="step-content">
+          <p class="step-title">Complete the Board &amp; Win!</p>
+          <p class="step-desc">Fill every cell correctly and AlphaMatrix celebrates your victory with a burst of confetti and your completion stats.</p>
+          <span class="step-tag tag-e">🏆 Glory awaits</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- Final CTA -->
+<div class="final-cta">
+  <h2>Ready to enter the Matrix?</h2>
+  <a class="btn-start" href="#" id="btn-final" aria-label="Start the game now">
+    <span class="btn-icon" aria-hidden="true">▶</span>
+    Start Playing — It's Free
+  </a>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════
+   CANVAS — PARTICLES + ANIMATED SUDOKU GRID
+════════════════════════════════════════════════════════ */
+(function () {
+  var canvas = document.getElementById('hero-canvas');
+  var ctx    = canvas.getContext('2d');
+  var W, H, particles = [], cells = [], t = 0;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', function() { resize(); buildGrid(); });
+
+  /* ── Floating particles ── */
+  function makeParticle() {
+    return {
+      x:  Math.random() * W,
+      y:  Math.random() * H,
+      r:  Math.random() * 1.6 + .3,
+      vx: (Math.random() - .5) * .2,
+      vy: (Math.random() - .5) * .2,
+      a:  Math.random() * .5 + .08,
+      h:  Math.random() > .5 ? 265 : 190
+    };
+  }
+  for (var i = 0; i < 110; i++) particles.push(makeParticle());
+
+  /* ── Ghost sudoku grid ── */
+  var GRID_N  = 9;      /* 9×9 */
+  var gridNums = [];     /* displayed digits */
+
+  function buildGrid() {
+    cells = [];
+    /* Responsive grid size */
+    var maxW = Math.min(W, H) * (W < 600 ? .72 : .52);
+    var size = maxW / GRID_N;
+    var ox   = W / 2 - maxW / 2;
+    var oy   = H / 2 - maxW / 2;
+
+    /* Build random-looking board */
+    var sample = [
+      [5,3,0,0,7,0,0,0,0],
+      [6,0,0,1,9,5,0,0,0],
+      [0,9,8,0,0,0,0,6,0],
+      [8,0,0,0,6,0,0,0,3],
+      [4,0,0,8,0,3,0,0,1],
+      [7,0,0,0,2,0,0,0,6],
+      [0,6,0,0,0,0,2,8,0],
+      [0,0,0,4,1,9,0,0,5],
+      [0,0,0,0,8,0,0,7,9]
+    ];
+
+    for (var r = 0; r < GRID_N; r++) {
+      for (var c = 0; c < GRID_N; c++) {
+        cells.push({
+          x:    ox + c * size,
+          y:    oy + r * size,
+          w:    size,
+          num:  sample[r][c],
+          row:  r,
+          col:  c,
+          revealT: Math.random() * 3,   /* staggered reveal time */
+          phase:   Math.random() * 6.28
+        });
+      }
+    }
+  }
+  buildGrid();
+
+  /* ── Draw ── */
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += .008;
+
+    /* ── Grid lines ── */
+    if (cells.length) {
+      var s = cells[0].w;
+      var ox = cells[0].x;
+      var oy = cells[0].y;
+      var total = s * GRID_N;
+
+      for (var i = 0; i <= GRID_N; i++) {
+        var thick = (i % 3 === 0);
+        ctx.lineWidth = thick ? 1.2 : .5;
+        var alpha = thick ? .18 : .08;
+        ctx.strokeStyle = 'rgba(124,58,237,' + alpha + ')';
+
+        /* Vertical */
+        ctx.beginPath();
+        ctx.moveTo(ox + i * s, oy);
+        ctx.lineTo(ox + i * s, oy + total);
+        ctx.stroke();
+        /* Horizontal */
+        ctx.beginPath();
+        ctx.moveTo(ox,         oy + i * s);
+        ctx.lineTo(ox + total, oy + i * s);
+        ctx.stroke();
+      }
+
+      /* ─ Cell glows & numbers ── */
+      cells.forEach(function(cell) {
+        var pulse = Math.sin(t * 1.4 + cell.phase) * .5 + .5;
+        var revealed = t > cell.revealT;
+
+        /* Subtle cell highlight on some cells */
+        if (cell.num !== 0 && revealed) {
+          var bgA = pulse * .07;
+          ctx.fillStyle = 'rgba(124,58,237,' + bgA + ')';
+          ctx.fillRect(cell.x + 1, cell.y + 1, cell.w - 2, cell.w - 2);
+        }
+
+        /* Number digit */
+        if (cell.num !== 0 && revealed) {
+          var numA = (.15 + pulse * .12);
+          ctx.font = 'bold ' + Math.round(cell.w * .42) + 'px Outfit,sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(167,139,250,' + numA + ')';
+          ctx.fillText(cell.num, cell.x + cell.w / 2, cell.y + cell.w / 2);
+        }
+      });
+    }
+
+    /* ── Particles ── */
+    particles.forEach(function(p) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -5)    p.x = W + 5;
+      if (p.x > W + 5) p.x = -5;
+      if (p.y < -5)    p.y = H + 5;
+      if (p.y > H + 5) p.y = -5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, 6.28);
+      ctx.fillStyle = 'hsla(' + p.h + ',80%,70%,' + p.a + ')';
+      ctx.fill();
+    });
+
+    /* ── Particle connections ── */
+    for (var i = 0; i < particles.length; i++) {
+      for (var j = i + 1; j < particles.length; j++) {
+        var dx = particles[i].x - particles[j].x,
+            dy = particles[i].y - particles[j].y,
+            d  = Math.sqrt(dx*dx + dy*dy);
+        if (d < 95) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'hsla(260,70%,65%,' + ((1 - d/95) * .09) + ')';
+          ctx.lineWidth = .4;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  /* ─ Orb mouse parallax ─ */
+  window.addEventListener('mousemove', function(e) {
+    var cx = (e.clientX / W - .5), cy = (e.clientY / H - .5);
+    document.querySelector('.orb-tl').style.transform  = 'translate('+(cx*30)+'px,'+(cy*30)+'px)';
+    document.querySelector('.orb-br').style.transform  = 'translate('+(-cx*22)+'px,'+(-cy*22)+'px)';
+    document.querySelector('.orb-mid').style.transform = 'translate('+(cx*14)+'px,'+(cy*14)+'px)';
+  });
+})();
+
+
+/* ════════════════════════════════════════════════════════
+   COUNTER ANIMATION (count up on load)
+════════════════════════════════════════════════════════ */
+(function() {
+  function countUp(el, target, duration, suffix) {
+    suffix = suffix || '';
+    var start = 0, step = target / (duration / 16);
+    var timer = setInterval(function() {
+      start += step;
+      if (start >= target) { start = target; clearInterval(timer); }
+      el.textContent = Math.round(start).toLocaleString() + suffix;
+    }, 16);
+  }
+
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      // Counters for puzzles and players removed
+    }, 900);
+  });
+})();
+
+
+/* ════════════════════════════════════════════════════════
+   PAGE TRANSITIONS
+════════════════════════════════════════════════════════ */
+(function() {
+  var veil = document.getElementById('exit-veil');
+
+  function goTo(url) {
+    veil.classList.add('on');
+    setTimeout(function() { window.location.href = url; }, 480);
+  }
+
+  document.getElementById('btn-start').addEventListener('click', function(e) {
+    e.preventDefault(); goTo('index.html?start=true');
+  });
+  document.getElementById('btn-final').addEventListener('click', function(e) {
+    e.preventDefault(); goTo('index.html?start=true');
+  });
+  document.getElementById('nav-cta').addEventListener('click', function(e) {
+    e.preventDefault(); goTo('index.html?start=true');
+  });
+
+  /* Fade IN on arrival (if coming back) */
+  veil.style.opacity = '1';
+  veil.style.pointerEvents = 'all';
+  setTimeout(function() {
+    veil.style.transition = 'opacity .5s ease';
+    veil.style.opacity = '0';
+    setTimeout(function() { veil.style.pointerEvents = 'none'; }, 520);
+  }, 50);
+})();
+</script>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   MINI GRID (interactive demo in How To Play)
+════════════════════════════════════════════════════════ */
+(function() {
+  var board = [
+    [5,3,0,0,7,0,0,0,0],
+    [6,0,0,1,9,5,0,0,0],
+    [0,9,8,0,0,0,0,6,0],
+    [8,0,0,0,6,0,0,0,3],
+    [4,0,0,8,0,3,0,0,1],
+    [7,0,0,0,2,0,0,0,6],
+    [0,6,0,0,0,0,2,8,0],
+    [0,0,0,4,1,9,0,0,5],
+    [0,0,0,0,8,0,0,7,9]
+  ];
+
+  var container = document.getElementById('mini-grid');
+  if (!container) return;
+
+  var selected = null;
+
+  // Build cells
+  for (var r = 0; r < 9; r++) {
+    for (var c = 0; c < 9; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'mg-cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      cell.setAttribute('role','gridcell');
+
+      // Box borders
+      if ((c+1) % 3 === 0 && c !== 8) cell.classList.add('box-r');
+      if ((r+1) % 3 === 0 && r !== 8) cell.classList.add('box-b');
+
+      var val = board[r][c];
+      if (val !== 0) {
+        cell.textContent = val;
+        cell.classList.add('given');
+      }
+
+      cell.addEventListener('click', function() { selectCell(this); });
+      container.appendChild(cell);
+    }
+  }
+
+  function selectCell(el) {
+    // Clear highlights
+    container.querySelectorAll('.mg-cell').forEach(function(c) {
+      c.classList.remove('hl-sel','hl-row','hl-col','hl-box','hl-same');
+    });
+    selected = el;
+    var sr = parseInt(el.dataset.r);
+    var sc = parseInt(el.dataset.c);
+    var sval = board[sr][sc];
+    var sboxR = Math.floor(sr/3)*3;
+    var sboxC = Math.floor(sc/3)*3;
+
+    container.querySelectorAll('.mg-cell').forEach(function(c) {
+      var cr = parseInt(c.dataset.r);
+      var cc = parseInt(c.dataset.c);
+      if (cr === sr && cc === sc) { c.classList.add('hl-sel'); return; }
+      if (cr === sr || cc === sc) c.classList.add('hl-row');
+      if (Math.floor(cr/3)*3===sboxR && Math.floor(cc/3)*3===sboxC) c.classList.add('hl-box');
+      if (sval !== 0 && board[cr][cc] === sval) c.classList.add('hl-same');
+    });
+  }
+
+  // Auto-select a cell after a pause so the user sees it working
+  setTimeout(function() {
+    var cells = container.querySelectorAll('.mg-cell');
+    // Select r=1,c=3 (value=1)
+    selectCell(cells[1*9+3]);
+  }, 1500);
+})();
+
+
+/* ════════════════════════════════════════════════════════
+   GSAP INTERSECTION & SCROLL ANIMATIONS
+════════════════════════════════════════════════════════ */
+(function() {
+  if (typeof gsap === 'undefined') return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Features Cards (staggered float up)
+  gsap.from(".feat-card", {
+    scrollTrigger: {
+      trigger: ".features-section",
+      start: "top 75%",
+    },
+    y: 50,
+    opacity: 0,
+    duration: 0.8,
+    stagger: 0.15,
+    ease: "power3.out"
+  });
+
+  // What is Sudoku text (slide from left)
+  gsap.from(".what-text", {
+    scrollTrigger: { trigger: ".what-wrap", start: "top 80%" },
+    x: -40, opacity: 0, duration: 0.8, ease: "power2.out"
+  });
+
+  // Mini Grid (scale pop from right)
+  gsap.from(".mini-grid-wrap", {
+    scrollTrigger: { trigger: ".what-wrap", start: "top 80%" },
+    x: 40, scale: 0.85, opacity: 0, duration: 0.9, ease: "back.out(1.2)"
+  });
+
+  // Rules Cards (cascade up)
+  gsap.from(".rule-card", {
+    scrollTrigger: { trigger: ".rules-grid", start: "top 85%" },
+    y: 40, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power2.out"
+  });
+
+  // Steps List (slide in from left)
+  gsap.from(".step-row", {
+    scrollTrigger: { trigger: ".steps-list", start: "top 85%" },
+    x: -40, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power2.out"
+  });
+
+  // Headers and general text elements
+  gsap.utils.toArray('.section-label, .section-title, .section-sub, .rules-heading, .steps-heading, .htp-divider, .final-cta *').forEach(function(el) {
+    gsap.from(el, {
+      scrollTrigger: { trigger: el, start: "top 85%" },
+      y: 20, opacity: 0, duration: 0.7, ease: "power2.out"
+    });
+  });
+})();
+</script>
+</body>
+</html>
